@@ -50,11 +50,11 @@ class IframeResizer {
     constructor(options = {}) {
         // Check if we are in an iFrame
         if (!IframeResizer.hasParent()) {
-            console.log('Not running inside an iFrame. Initialization aborted.', null);
+            console.log('Not running inside an iFrame. Initialization aborted.');
             return; // Kein iFrame, keine Initialisierung
         }
         else{
-            this.log('Running inside an iFrame.', null);
+            console.log('Running inside an iFrame.');
         }
 
         // Instance check and clean up old ones (singleton pattern)
