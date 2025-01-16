@@ -1,13 +1,13 @@
 /**
- * IframeResizer: A JavaScript utility class for resizing and communicating iFrames with their parent windows.
+ * IFrameResizer: A JavaScript utility class for resizing and communicating iFrames with their parent windows.
  *
- * @name IframeResizer
+ * @name IFrameResizer
  * @version 1.0.0
  * @author Thomas Kirsch
  * @date 2025-01-16
  *
  * @description
- * The `IframeResizer` class provides a solution for managing the dimensions and scrolling of an embedded
+ * The `IFrameResizer` class provides a solution for managing the dimensions and scrolling of an embedded
  * iFrame from within the iFrame itself. It is designed to work in conjunction with the parent window, sending
  * messages about size or scroll position changes via `postMessage` API. This class ensures seamless
  * communication and adaptation of the iFrame content, improving user experience and simplifying integration.
@@ -20,8 +20,8 @@
  *
  * Usage Example:
  * ```javascript
- * // Create a new instance of IframeResizer with custom options
- * const iframeResizer = window.iFrameResizer.create({
+ * // Create a new instance of IFrameResizer with custom options
+ * const IFrameResizer = window.IFrameResizer.create({
  *    targetOrigin: 'https://example.com', // Specify the parent window's origin
  *    resize: true, // Enable resize listener
  *    scroll: true, // Enable scroll listener
@@ -29,27 +29,27 @@
  * });
  * ```
  *
- * @class IframeResizer
+ * @class IFrameResizer
  */
-window.iFrameResizer = {
+window.IFrameResizer = {
     onReady: null,
     create: (options = {}) => {
-        const iframeResizerInstance = new IframeResizer(options);
+        const IFrameResizerInstance = new IFrameResizer(options);
 
-        if (typeof window.iFrameResizer.onReady === 'function') {
-            window.iFrameResizer.onReady(iframeResizerInstance);
+        if (typeof window.IFrameResizer.onReady === 'function') {
+            window.IFrameResizer.onReady(IFrameResizerInstance);
         }
 
-        return iframeResizerInstance;
+        return IFrameResizerInstance;
     }
 };
 
-class IframeResizer {
+class IFrameResizer {
     static instance;
 
     constructor(options = {}) {
         // Check if we are in an iFrame
-        if (!IframeResizer.hasParent()) {
+        if (!IFrameResizer.hasParent()) {
             console.log('Not running inside an iFrame. Initialization aborted.');
             return; // Kein iFrame, keine Initialisierung
         }
@@ -58,10 +58,10 @@ class IframeResizer {
         }
 
         // Instance check and clean up old ones (singleton pattern)
-        if (IframeResizer.instance) {
-            IframeResizer.instance.destroy();
+        if (IFrameResizer.instance) {
+            IFrameResizer.instance.destroy();
         }
-        IframeResizer.instance = this;
+        IFrameResizer.instance = this;
 
         this.lastHeight = null;
         const defaultOptions = {
@@ -140,7 +140,7 @@ class IframeResizer {
 
     // Destroys the instance and removes all event listeners
     destroy() {
-        this.log('Destroying IframeResizer instance');
+        this.log('Destroying IFrameResizer instance');
 
         if (this.options.resize) {
             this.observer && this.observer.disconnect();
