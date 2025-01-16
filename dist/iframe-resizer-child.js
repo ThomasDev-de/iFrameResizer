@@ -52,8 +52,7 @@ class IFrameResizer {
         if (!IFrameResizer.hasParent()) {
             console.log('Not running inside an iFrame. Initialization aborted.');
             return; // Kein iFrame, keine Initialisierung
-        }
-        else{
+        } else {
             console.log('Running inside an iFrame.');
         }
 
@@ -87,16 +86,16 @@ class IFrameResizer {
     initResizeListener() {
         this.onResize = this.onResize.bind(this);
 
-        // Dom-Änderungen beobachten
-        const targetNode = document.body;
+        const resizeObserverCallback = (entries) => {
+            for (const entry of entries) {
+                if (entry.target === document.body) {
+                    this.onResize();
+                }
+            }
+        };
 
-        const config = { attributes: true, childList: true, subtree: true, characterData: true };
-
-        this.observer = new MutationObserver(() => this.onResize());
-        this.observer.observe(targetNode, config);
-
-        // Initial prüfen
-        this.onResize();
+        this.observer = new ResizeObserver(resizeObserverCallback);
+        this.observer.observe(document.body);
     }
 
     // Starts a scroll listener
@@ -107,11 +106,8 @@ class IFrameResizer {
 
     // Called when the size changes
     onResize(force = false) {
-        const bodyHeight = document.body.scrollHeight;
-        const htmlHeight = document.documentElement.scrollHeight;
-        const offsetHeight = document.documentElement.offsetHeight;
-        console.log(document.body.scrollHeight)
-        const newHeight = Math.max(bodyHeight, htmlHeight, offsetHeight);
+        // const reflow = document.body.offsetHeight; // Erzwungener Reflow zur Sicherstellung der Browser-Berechnung
+        const newHeight = document.body.scrollHeight; // Höhe basierend auf aktuellem Inhalt
 
         if (force || newHeight !== this.lastHeight) {
             this.lastHeight = newHeight;
@@ -132,7 +128,7 @@ class IFrameResizer {
         window.parent.postMessage({type, ...data}, this.options.targetOrigin);
     }
 
-   // Debug logging if enabled
+    // Debug logging if enabled
     log(message, data) {
         if (this.options.log) {
             console.log(`[LOG][IFRAME CHILD][${window.location.host}]: ${message}`, data);
@@ -144,7 +140,7 @@ class IFrameResizer {
         this.log('Destroying IFrameResizer instance');
 
         if (this.options.resize) {
-            this.observer && this.observer.disconnect();
+            this.observer && this.observer.unobserve(document.body);
         }
         if (this.options.scroll) {
             window.removeEventListener('scroll', this.onScroll);
