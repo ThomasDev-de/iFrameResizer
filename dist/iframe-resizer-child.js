@@ -63,6 +63,7 @@ class IFrameResizer {
         IFrameResizer.instance = this;
 
         this.lastHeight = null;
+        this.lastWidth = null;
         const defaultOptions = {
             targetOrigin: '*',
             resize: true,
@@ -108,10 +109,11 @@ class IFrameResizer {
     onResize(force = false) {
         // const reflow = document.body.offsetHeight; // Erzwungener Reflow zur Sicherstellung der Browser-Berechnung
         const newHeight = document.body.scrollHeight; // Höhe basierend auf aktuellem Inhalt
-
-        if (force || newHeight !== this.lastHeight) {
+        const newWidth = document.body.scrollWidth;
+        if (force || newHeight !== this.lastHeight || newWidth !== this.lastWidth) { // newWidth berücksichtigen
             this.lastHeight = newHeight;
-            this.sendMessage('resize', {height: newHeight});
+            this.lastWidth = newWidth; // newWidth speichern
+            this.sendMessage('resize', { height: newHeight, width: newWidth }); // newWidth mitsenden
         }
     }
 
@@ -148,6 +150,7 @@ class IFrameResizer {
 
         this.observer = null;
         this.lastHeight = null;
+        this.lastWidth = null;
     }
 
     // Here is the method that checks whether we are in an iFrame
