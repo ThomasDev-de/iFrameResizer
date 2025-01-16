@@ -89,6 +89,7 @@ class IFrameResizer {
 
         // Dom-Änderungen beobachten
         const targetNode = document.body;
+        console.log(document.body.scrollHeight)
         const config = { attributes: true, childList: true, subtree: true, characterData: true };
 
         this.observer = new MutationObserver(() => this.onResize());
