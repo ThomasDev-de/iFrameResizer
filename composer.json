@@ -1,0 +1,33 @@
+{
+  "name": "webcito/iframe-resizer",
+  "version": "1.0.0",
+  "description": "A JavaScript library for dynamic iframe resizing and communication.",
+  "keywords": [
+    "iframe",
+    "resizer",
+    "javascript",
+    "communication",
+    "library"
+  ],
+  "homepage": "https://github.com/ThomasDev-de/iFrameResizer",
+  "type": "library",
+  "license": "MIT",
+  "authors": [
+    {
+      "name": "Thomas Kirsch",
+      "email": "t.kirsch@webcito.de",
+      "homepage": "https://www.webcito.de",
+      "role": "Developer"
+    }
+  ],
+  "support": {
+    "issues": "https://github.com/ThomasDev-de/iFrameResizer/issues",
+    "source": "https://github.com/ThomasDev-de/iFrameResizer"
+  },
+  "minimum-stability": "stable",
+  "require": {},
+  "require-dev": {},
+  "scripts": {
+    "test": "echo \"No tests specified\" && exit 0"
+  }
+}

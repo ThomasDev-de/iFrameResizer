@@ -1,3 +1,36 @@
+/**
+ * IframeResizer: A JavaScript utility class for resizing and communicating iFrames with their parent windows.
+ *
+ * @name IframeResizer
+ * @version 1.0.0
+ * @author Thomas Kirsch
+ * @date 2025-01-16
+ *
+ * @description
+ * The `IframeResizer` class provides a solution for managing the dimensions and scrolling of an embedded
+ * iFrame from within the iFrame itself. It is designed to work in conjunction with the parent window, sending
+ * messages about size or scroll position changes via `postMessage` API. This class ensures seamless
+ * communication and adaptation of the iFrame content, improving user experience and simplifying integration.
+ *
+ * Key Features:
+ * - Automatically detects changes in DOM content to resize the parent iFrame.
+ * - Sends scroll event information to the parent.
+ * - Designed with a singleton pattern to ensure only one instance of the utility runs at a time.
+ * - Includes logging features for easier debugging.
+ *
+ * Usage Example:
+ * ```javascript
+ * // Create a new instance of IframeResizer with custom options
+ * const iframeResizer = window.iFrameResizer.create({
+ *    targetOrigin: 'https://example.com', // Specify the parent window's origin
+ *    resize: true, // Enable resize listener
+ *    scroll: true, // Enable scroll listener
+ *    log: true,    // Enable debugging logs
+ * });
+ * ```
+ *
+ * @class IframeResizer
+ */
 window.iFrameResizer = {
     onReady: null,
     create: (options = {}) => {
@@ -12,25 +45,32 @@ window.iFrameResizer = {
 };
 
 class IframeResizer {
-    static instance; // Singleton-Referenz speichern
+    static instance;
 
     constructor(options = {}) {
-        // Prüfen, ob bereits eine Instanz existiert
-        if (IframeResizer.instance) {
-            IframeResizer.instance.destroy(); // Zerstören der alten Instanz
+        // Check if we are in an iFrame
+        if (!IframeResizer.hasParent()) {
+            this.log('Not running inside an iFrame. Initialization aborted.', null);
+            return; // Kein iFrame, keine Initialisierung
+        }
+        else{
+            this.log('Running inside an iFrame.', null);
         }
 
-        // Neue Instanz zuweisen
+        // Instance check and clean up old ones (singleton pattern)
+        if (IframeResizer.instance) {
+            IframeResizer.instance.destroy();
+        }
         IframeResizer.instance = this;
 
-        this.lastHeight = null; // Zuletzt gesendete Höhe
+        this.lastHeight = null;
         const defaultOptions = {
             targetOrigin: '*',
             resize: true,
             scroll: true,
             log: false
         };
-        this.options = { ...defaultOptions, ...options };
+        this.options = {...defaultOptions, ...options};
         this.observer = null;
 
         this.log('Initializing', this.options);
@@ -43,66 +83,78 @@ class IframeResizer {
         }
     }
 
+    // Starts resize listener
     initResizeListener() {
-        // Event-Listener initialisieren
         this.onResize = this.onResize.bind(this);
-        window.addEventListener('resize', this.onResize);
 
-        // MutationObserver initialisieren
+        // Dom-Änderungen beobachten
         const targetNode = document.documentElement;
-        const config = { childList: true, subtree: true, attributes: true };
+        const config = {attributes: true, childList: true, subtree: true, characterData: true};
 
         this.observer = new MutationObserver(() => this.onResize());
         this.observer.observe(targetNode, config);
+
+        // Initial prüfen
+        this.onResize();
     }
 
+    // Starts a scroll listener
     initScrollListener() {
         this.onScroll = this.onScroll.bind(this);
         window.addEventListener('scroll', this.onScroll);
     }
 
-    onResize() {
-        const height = document.documentElement.scrollHeight;
-        if (height !== this.lastHeight) {
-            this.lastHeight = height;
-            this.sendMessage('resize', { height });
+    // Called when the size changes
+    onResize(force = false) {
+        const bodyHeight = document.body.scrollHeight;
+        const htmlHeight = document.documentElement.scrollHeight;
+        const offsetHeight = document.documentElement.offsetHeight;
+
+        const newHeight = Math.max(bodyHeight, htmlHeight, offsetHeight);
+
+        if (force || newHeight !== this.lastHeight) {
+            this.lastHeight = newHeight;
+            this.sendMessage('resize', {height: newHeight});
         }
     }
 
+    // Called when scrolling
     onScroll() {
         const top = window.scrollY || document.documentElement.scrollTop;
         const left = window.scrollX || document.documentElement.scrollLeft;
-        this.sendMessage('scroll', { top, left });
+        this.sendMessage('scroll', {top, left});
     }
 
+    // Sends a message to the parent window
     sendMessage(type, data) {
-        this.log('Sending message', { type, ...data });
-        window.parent.postMessage({ type, ...data }, this.options.targetOrigin);
+        this.log('postMessage', {type, ...data});
+        window.parent.postMessage({type, ...data}, this.options.targetOrigin);
     }
 
+   // Debug logging if enabled
     log(message, data) {
         if (this.options.log) {
-            console.log("[LOG]["+window.location.host+"][iframe child]: " + message, data);
+            console.log(`[LOG][IFRAME CHILD][${window.location.host}]: ${message}`, data);
         }
     }
 
+    // Destroys the instance and removes all event listeners
     destroy() {
         this.log('Destroying IframeResizer instance');
 
-        // Event-Listener entfernen
         if (this.options.resize) {
-            window.removeEventListener('resize', this.onResize);
+            this.observer && this.observer.disconnect();
         }
         if (this.options.scroll) {
             window.removeEventListener('scroll', this.onScroll);
         }
 
-        // MutationObserver stoppen
-        if (this.observer) {
-            this.observer.disconnect();
-            this.observer = null;
-        }
-
+        this.observer = null;
         this.lastHeight = null;
+    }
+
+    // Here is the method that checks whether we are in an iFrame
+    static hasParent() {
+        return window.self !== window.top;
     }
 }
