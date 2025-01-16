@@ -88,8 +88,8 @@ class IFrameResizer {
         this.onResize = this.onResize.bind(this);
 
         // Dom-Änderungen beobachten
-        const targetNode = document.documentElement;
-        const config = {attributes: true, childList: true, subtree: true, characterData: true};
+        const targetNode = document.body;
+        const config = { attributes: true, childList: true, subtree: true, characterData: true };
 
         this.observer = new MutationObserver(() => this.onResize());
         this.observer.observe(targetNode, config);
