@@ -12,17 +12,29 @@ window.iFrameResizer = {
 };
 
 class IframeResizer {
-    constructor( options = {}) {
-        this.lastHeight = null; // Store the last sent height
+    static instance; // Singleton-Referenz speichern
+
+    constructor(options = {}) {
+        // Prüfen, ob bereits eine Instanz existiert
+        if (IframeResizer.instance) {
+            IframeResizer.instance.destroy(); // Zerstören der alten Instanz
+        }
+
+        // Neue Instanz zuweisen
+        IframeResizer.instance = this;
+
+        this.lastHeight = null; // Zuletzt gesendete Höhe
         const defaultOptions = {
-            targetOrigin : '*',
+            targetOrigin: '*',
             resize: true,
             scroll: true,
-            log: false // Log option, default false
+            log: false
         };
         this.options = { ...defaultOptions, ...options };
+        this.observer = null;
 
-        this.log('Initializing', this.options)
+        this.log('Initializing', this.options);
+
         if (this.options.resize) {
             this.initResizeListener();
         }
@@ -32,50 +44,65 @@ class IframeResizer {
     }
 
     initResizeListener() {
-        // Listen for window resize events
-        window.addEventListener('resize', this.onResize.bind(this));
+        // Event-Listener initialisieren
+        this.onResize = this.onResize.bind(this);
+        window.addEventListener('resize', this.onResize);
 
-        // Initialize MutationObserver to detect content changes
-            const targetNode = document.documentElement;
-            const config = { childList: true, subtree: true, attributes: true };
+        // MutationObserver initialisieren
+        const targetNode = document.documentElement;
+        const config = { childList: true, subtree: true, attributes: true };
 
-            const observer = new MutationObserver(() => this.onResize());
-            observer.observe(targetNode, config);
-
+        this.observer = new MutationObserver(() => this.onResize());
+        this.observer.observe(targetNode, config);
     }
 
     initScrollListener() {
-        // Listen for scroll events
-        window.addEventListener('scroll', this.onScroll.bind(this));
+        this.onScroll = this.onScroll.bind(this);
+        window.addEventListener('scroll', this.onScroll);
     }
 
     onResize() {
-        // Send resize message with current height
         const height = document.documentElement.scrollHeight;
-        // Only send the message if the height has changed
         if (height !== this.lastHeight) {
-            this.lastHeight = height; // Update last sent height
+            this.lastHeight = height;
             this.sendMessage('resize', { height });
         }
     }
 
     onScroll() {
-        // Send scroll message with current top and left position
         const top = window.scrollY || document.documentElement.scrollTop;
         const left = window.scrollX || document.documentElement.scrollLeft;
         this.sendMessage('scroll', { top, left });
     }
 
+    sendMessage(type, data) {
+        this.log('Sending message', { type, ...data });
+        window.parent.postMessage({ type, ...data }, this.options.targetOrigin);
+    }
+
     log(message, data) {
         if (this.options.log) {
-            console.log("[LOG][iframe child]: "+message, data);
+            console.log("[LOG]["+window.location.host+"][iframe child]: " + message, data);
         }
     }
 
+    destroy() {
+        this.log('Destroying IframeResizer instance');
 
-    sendMessage(type, data) {
-        this.log("Sending message", { type, ...data });
-        // Send message to parent window
-        window.parent.postMessage({ type, ...data }, this.options.targetOrigin);
+        // Event-Listener entfernen
+        if (this.options.resize) {
+            window.removeEventListener('resize', this.onResize);
+        }
+        if (this.options.scroll) {
+            window.removeEventListener('scroll', this.onScroll);
+        }
+
+        // MutationObserver stoppen
+        if (this.observer) {
+            this.observer.disconnect();
+            this.observer = null;
+        }
+
+        this.lastHeight = null;
     }
 }
