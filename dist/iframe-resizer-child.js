@@ -89,7 +89,7 @@ class IFrameResizer {
 
         // Dom-Änderungen beobachten
         const targetNode = document.body;
-        console.log(document.body.scrollHeight)
+
         const config = { attributes: true, childList: true, subtree: true, characterData: true };
 
         this.observer = new MutationObserver(() => this.onResize());
@@ -110,7 +110,7 @@ class IFrameResizer {
         const bodyHeight = document.body.scrollHeight;
         const htmlHeight = document.documentElement.scrollHeight;
         const offsetHeight = document.documentElement.offsetHeight;
-
+        console.log(document.body.scrollHeight)
         const newHeight = Math.max(bodyHeight, htmlHeight, offsetHeight);
 
         if (force || newHeight !== this.lastHeight) {
