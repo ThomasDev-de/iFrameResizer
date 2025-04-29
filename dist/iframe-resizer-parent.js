@@ -11,6 +11,7 @@ class IFrameResizer {
             log: false,
             onResize: null,
             onScroll: null,
+            initData: {}
         };
         this.options = { ...defaultOptions, ...options };
         this.customMessageHandlers = new Map(); // Map für Custom-Events
@@ -21,7 +22,7 @@ class IFrameResizer {
         this.log('ParentIFrameResizer initialized');
 
         // Automatische Initialnachricht an den iFrame senden
-        this.sendMessage('init');
+        this.sendMessage('init', this.options.initData);
     }
 
     // Methode zum Registrieren eines Custom-Event-Handlers

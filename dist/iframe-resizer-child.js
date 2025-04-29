@@ -69,7 +69,8 @@ class IFrameResizer {
             targetOrigin: '*',
             resize: true,
             scroll: true,
-            log: false
+            log: false,
+            initData: {}
         };
         this.options = {...defaultOptions, ...options};
         this.observer = null;
@@ -90,7 +91,7 @@ class IFrameResizer {
         if (this.options.scroll) {
             this.initScrollListener();
         }
-        this.sendMessage('init')
+        this.sendMessage('init', this.options.initData)
     }
 
     // Starts resize listener
