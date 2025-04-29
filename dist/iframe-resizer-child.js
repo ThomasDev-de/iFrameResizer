@@ -1,39 +1,7 @@
-/**
- * IFrameResizer: A JavaScript utility class for resizing and communicating iFrames with their parent windows.
- *
- * @name IFrameResizer
- * @version 1.0.0
- * @author Thomas Kirsch
- * @date 2025-01-16
- *
- * @description
- * The `IFrameResizer` class provides a solution for managing the dimensions and scrolling of an embedded
- * iFrame from within the iFrame itself. It is designed to work in conjunction with the parent window, sending
- * messages about size or scroll position changes via `postMessage` API. This class ensures seamless
- * communication and adaptation of the iFrame content, improving user experience and simplifying integration.
- *
- * Key Features:
- * - Automatically detects changes in DOM content to resize the parent iFrame.
- * - Sends scroll event information to the parent.
- * - Designed with a singleton pattern to ensure only one instance of the utility runs at a time.
- * - Includes logging features for easier debugging.
- *
- * Usage Example:
- * ```JavaScript
- * // Create a new instance of IFrameResizer with custom options
- * const IFrameResizer = window.IFrameResizer.create({
- *    targetOrigin: 'https://example.com', // Specify the parent window's origin
- *    resize: true, // Enable resize listener
- *    scroll: true, // Enable scroll listener
- *    log: true, // Enable debugging logs
- * });
- * ```
- *
- * @class IFrameResizer
- */
+// Global IFrameResizer object that provides the entry point for creating resizer instances
 window.IFrameResizer = {
-    onReady: null,
-    create: (options = {}) => {
+    onReady: null, // Callback function that gets called when resizer is ready
+    create: (options = {}) => { // Factory method to create new IFrameResizer instances
         const IFrameResizerInstance = new IFrameResizer(options);
 
         if (typeof window.IFrameResizer.onReady === 'function') {
@@ -44,16 +12,32 @@ window.IFrameResizer = {
     }
 };
 
+/**
+ * Main class for handling iframe resizing and communication with the parent window
+ * Implements a singleton pattern to ensure only one instance is active
+ */
 class IFrameResizer {
-    static instance = null;
+    static instance = null; // Holds the single instance of IFrameResizer
 
+    /**
+     * Creates a new IFrameResizer instance with the given options
+     * @param {Object} options - Configuration options for the resizer
+     */
     constructor(options = {}) {
+        const defaultOptions = {
+            targetOrigin: '*',
+            resize: true,
+            scroll: true,
+            log: false,
+            initData: {}
+        };
+        this.options = {...defaultOptions, ...options};
         // Check if we are in an iFrame
         if (!IFrameResizer.hasParent()) {
-            console.error(`[LOG][IFRAME CHILD][${window.location.host}]: Not running inside an iFrame. Initialization aborted.`);
+            this.log(`Not running inside an iFrame. Initialization aborted.`, null, true, false);
             return; // No iFrame, no initialization
         } else {
-            console.log(`[LOG][IFRAME CHILD][${window.location.host}]: Running inside an iFrame.`);
+            this.log(`Running inside an iFrame.`);
         }
 
         // Instance check and clean up old ones (singleton pattern)
@@ -65,17 +49,7 @@ class IFrameResizer {
 
         this.lastHeight = null;
         this.lastWidth = null;
-        const defaultOptions = {
-            targetOrigin: '*',
-            resize: true,
-            scroll: true,
-            log: false,
-            initData: {}
-        };
-        this.options = {...defaultOptions, ...options};
         this.observer = null;
-
-        // Map zur Registrierung von Custom-Message-Handlern
         this.customMessageHandlers = new Map();
 
         // Message handler setup
@@ -91,13 +65,25 @@ class IFrameResizer {
         if (this.options.scroll) {
             this.initScrollListener();
         }
-        this.sendMessage('init', this.options.initData)
+
+        // Sende direkt beim Start die Ready-Nachricht
+        if (IFrameResizer.hasParent()) {
+            this.log('Sending ready message');
+           // Short delay to ensure that the cathedral is loaded
+            setTimeout(() => {
+                this.sendMessage('ready', {});
+            }, 0);
+        }
     }
 
-    // Starts resize listener
+    /**
+     * Initializes the resize listener using ResizeObserver
+     * Monitors the document body for size changes
+     */
     initResizeListener() {
         this.onResize = this.onResize.bind(this);
 
+        // Callback function for the ResizeObserver
         const resizeObserverCallback = (entries) => {
             for (const entry of entries) {
                 if (entry.target === document.body) {
@@ -110,13 +96,19 @@ class IFrameResizer {
         this.observer.observe(document.body);
     }
 
-    // Starts a scroll listener
+    /**
+     * Initializes the scroll listener
+     * Attaches scroll event handler to the window
+     */
     initScrollListener() {
         this.onScroll = this.onScroll.bind(this);
         window.addEventListener('scroll', this.onScroll);
     }
 
-    // Called when the size changes
+    /**
+     * Handles resize events and send new dimensions to parent
+     * @param {boolean} force - Force sending dimensions even if unchanged
+     */
     onResize(force = false) {
         if (IFrameResizer.instance) {
             // const reflow = document.body.offsetHeight; // Erzwungener Reflow zur Sicherstellung der Browser-Berechnung
@@ -130,7 +122,9 @@ class IFrameResizer {
         }
     }
 
-    // Called when scrolling
+    /**
+     * Handles scroll events and sends scroll position to parent
+     */
     onScroll() {
         if (IFrameResizer.instance) {
             const top = window.scrollY || document.documentElement.scrollTop;
@@ -139,7 +133,11 @@ class IFrameResizer {
         }
     }
 
-    // Verarbeitet eingehende Nachrichten vom parent-Fenster
+    /**
+     * Processes incoming messages from the parent window
+     * Validates origin and routes messages to appropriate handlers
+     * @param {MessageEvent} event - The message event from the parent
+     */
     handleMessage(event) {
         // Message origin validation
         if (this.options.targetOrigin !== '*' && event.origin !== this.options.targetOrigin) {
@@ -169,31 +167,47 @@ class IFrameResizer {
         }
     }
 
-    // Registriert einen Custom-Message-Handler für einen bestimmten Typ
+    /**
+     * Registers a custom message handler for a specific message type
+     * @param {string} type - The message type to handle
+     * @param {Function} callback - The callback function to execute
+     * @returns {IFrameResizer} Current instance for chaining
+     */
     onMessage(type, callback) {
         if (IFrameResizer.instance) {
             if (typeof type === 'string' && typeof callback === 'function') {
                 this.customMessageHandlers.set(type, callback);
                 this.log(`Custom message handler registered for type: ${type}`);
             } else {
-                console.error(`[LOG][IFRAME CHILD]: Invalid handler for message type: ${type}. Callback must be a function.`);
+                this.log(`Invalid handler for message type: ${type}. Expected a string and a function.`, null, true, false);
             }
         }
         return this; // Rückgabe der aktuellen Instanz für Verkettung
     }
 
-    // Sends a message to the parent window
+    /**
+     * Sends a message to the parent window
+     * @param {string} type - The type of message to send
+     * @param {Object} data - The data to send with the message
+     * @returns {IFrameResizer} Current instance for chaining
+     */
     sendMessage(type, data) {
         if (IFrameResizer.instance) {
             this.log('postMessage', {type, ...data});
             window.parent.postMessage({type, ...data}, this.options.targetOrigin);
         } else {
-            console.error(`[LOG][IFRAME CHILD][${window.location.host}]: IFrameResizer is not initialized. Cannot send message.`);
+            this.log('IFrameResizer is not initialized. Cannot send message.', null, true, false);
         }
         return this;
     }
 
-    // Debug logging if enabled
+    /**
+     * Logs messages if logging is enabled in options
+     * @param {string} message - The message to log
+     * @param {*} data - Additional data to log
+     * @param {boolean} error - Whether to log as error
+     * @param {boolean} warn - Whether to log as warning
+     */
     log(message, data = null, error = false, warn = false) {
         if (this.options.log) {
             if (!error && !warn) {
@@ -206,7 +220,10 @@ class IFrameResizer {
         }
     }
 
-    // Destroys the instance and removes all event listeners
+    /**
+     * Cleans up the IFrameResizer instance
+     * Removes all event listeners and clears registered handlers
+     */
     destroy() {
         this.log('Destroying IFrameResizer instance');
 
@@ -226,7 +243,10 @@ class IFrameResizer {
         IFrameResizer.instance = null;
     }
 
-    // Here is the method that checks whether we are in an iFrame
+    /**
+     * Checks if the current window is inside an iframe
+     * @returns {boolean} True if running inside an iframe
+     */
     static hasParent() {
         return window.self !== window.top;
     }
