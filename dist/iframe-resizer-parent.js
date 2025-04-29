@@ -15,7 +15,7 @@ class IFrameResizer {
         this.onMessage = this.onMessage.bind(this);
         window.addEventListener('message', this.onMessage);
         this.log('ParentIFrameResizer initialized');
-
+        this.sendMessage('init')
     }
 
     onMessage(event) {
@@ -23,7 +23,6 @@ class IFrameResizer {
             return;
         }
         this.log('Message received', event.data);
-
 
         switch (event.data.type) {
             case 'resize':

@@ -19,13 +19,13 @@
  * - Includes logging features for easier debugging.
  *
  * Usage Example:
- * ```javascript
+ * ```JavaScript
  * // Create a new instance of IFrameResizer with custom options
  * const IFrameResizer = window.IFrameResizer.create({
  *    targetOrigin: 'https://example.com', // Specify the parent window's origin
  *    resize: true, // Enable resize listener
  *    scroll: true, // Enable scroll listener
- *    log: true,    // Enable debugging logs
+ *    log: true, // Enable debugging logs
  * });
  * ```
  *
@@ -45,21 +45,22 @@ window.IFrameResizer = {
 };
 
 class IFrameResizer {
-    static instance;
+    static instance = null;
 
     constructor(options = {}) {
         // Check if we are in an iFrame
         if (!IFrameResizer.hasParent()) {
-            console.log('Not running inside an iFrame. Initialization aborted.');
-            return; // Kein iFrame, keine Initialisierung
+            console.error(`[LOG][IFRAME CHILD][${window.location.host}]: Not running inside an iFrame. Initialization aborted.`);
+            return; // No iFrame, no initialization
         } else {
-            console.log('Running inside an iFrame.');
+            console.log(`[LOG][IFRAME CHILD][${window.location.host}]: Running inside an iFrame.`);
         }
 
         // Instance check and clean up old ones (singleton pattern)
-        if (IFrameResizer.instance) {
+        if (IFrameResizer.instance !== null) {
             IFrameResizer.instance.destroy();
         }
+
         IFrameResizer.instance = this;
 
         this.lastHeight = null;
@@ -81,6 +82,7 @@ class IFrameResizer {
         if (this.options.scroll) {
             this.initScrollListener();
         }
+        this.sendMessage('init')
     }
 
     // Starts resize listener
@@ -107,33 +109,47 @@ class IFrameResizer {
 
     // Called when the size changes
     onResize(force = false) {
-        // const reflow = document.body.offsetHeight; // Erzwungener Reflow zur Sicherstellung der Browser-Berechnung
-        const newHeight = document.body.scrollHeight; // Höhe basierend auf aktuellem Inhalt
-        const newWidth = document.body.scrollWidth;
-        if (force || newHeight !== this.lastHeight || newWidth !== this.lastWidth) { // newWidth berücksichtigen
-            this.lastHeight = newHeight;
-            this.lastWidth = newWidth; // newWidth speichern
-            this.sendMessage('resize', { height: newHeight, width: newWidth }); // newWidth mitsenden
+        if (IFrameResizer.instance) {
+            // const reflow = document.body.offsetHeight; // Erzwungener Reflow zur Sicherstellung der Browser-Berechnung
+            const newHeight = document.body.scrollHeight; // Höhe basierend auf aktuellem Inhalt
+            const newWidth = document.body.scrollWidth;
+            if (force || newHeight !== this.lastHeight || newWidth !== this.lastWidth) { // newWidth berücksichtigen
+                this.lastHeight = newHeight;
+                this.lastWidth = newWidth; // newWidth speichern
+                this.sendMessage('resize', {height: newHeight, width: newWidth}); // newWidth mitsenden
+            }
         }
     }
 
     // Called when scrolling
     onScroll() {
-        const top = window.scrollY || document.documentElement.scrollTop;
-        const left = window.scrollX || document.documentElement.scrollLeft;
-        this.sendMessage('scroll', {top, left});
+        if (IFrameResizer.instance) {
+            const top = window.scrollY || document.documentElement.scrollTop;
+            const left = window.scrollX || document.documentElement.scrollLeft;
+            this.sendMessage('scroll', {top, left});
+        }
     }
 
     // Sends a message to the parent window
     sendMessage(type, data) {
-        this.log('postMessage', {type, ...data});
-        window.parent.postMessage({type, ...data}, this.options.targetOrigin);
+        if (IFrameResizer.instance) {
+            this.log('postMessage', {type, ...data});
+            window.parent.postMessage({type, ...data}, this.options.targetOrigin);
+        } else {
+            console.error(`[LOG][IFRAME CHILD][${window.location.host}]: IFrameResizer is not initialized. Cannot send message.`);
+        }
     }
 
     // Debug logging if enabled
-    log(message, data) {
+    log(message, data = null, error = false, warn = false) {
         if (this.options.log) {
-            console.log(`[LOG][IFRAME CHILD][${window.location.host}]: ${message}`, data);
+            if (!error && !warn) {
+                console.log(`[LOG][IFRAME CHILD][${window.location.host}]: ${message}`, data);
+            } else if (error) {
+                console.error(`[LOG][IFRAME CHILD][${window.location.host}]: ${message}`, data);
+            } else {
+                console.warn(`[LOG][IFRAME CHILD][${window.location.host}]: ${message}`, data);
+            }
         }
     }
 
@@ -151,6 +167,7 @@ class IFrameResizer {
         this.observer = null;
         this.lastHeight = null;
         this.lastWidth = null;
+        IFrameResizer.instance = null;
     }
 
     // Here is the method that checks whether we are in an iFrame
