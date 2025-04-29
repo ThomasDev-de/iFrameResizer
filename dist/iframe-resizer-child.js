@@ -74,6 +74,14 @@ class IFrameResizer {
         this.options = {...defaultOptions, ...options};
         this.observer = null;
 
+        // Map zur Registrierung von Custom-Message-Handlern
+        this.customMessageHandlers = new Map();
+
+        // Message handler setup
+        this.handleMessage = this.handleMessage.bind(this); // Bind method to instance
+        window.addEventListener('message', this.handleMessage);
+
+
         this.log('Initializing', this.options);
 
         if (this.options.resize) {
@@ -130,6 +138,42 @@ class IFrameResizer {
         }
     }
 
+    // Verarbeitet eingehende Nachrichten vom parent-Fenster
+    handleMessage(event) {
+        // Message origin validation
+        if (this.options.targetOrigin !== '*' && event.origin !== this.options.targetOrigin) {
+            this.log(`Message origin mismatch: expected ${this.options.targetOrigin}, got ${event.origin}`, null, false, true);
+            return;
+        }
+
+        const {type, ...data} = event.data;
+
+        if (this.customMessageHandlers.has(type)) {
+            const handler = this.customMessageHandlers.get(type);
+            try {
+                handler(data, event); // Den registrierten Callback aufrufen
+                this.log(`Custom message processed: ${type}`, data);
+            } catch (error) {
+                this.log(`Error in custom message handler for type: ${type}`, error, true);
+            }
+        } else {
+            this.log(`No handler registered for message type: ${type}`, data, false, true);
+        }
+    }
+
+    // Registriert einen Custom-Message-Handler für einen bestimmten Typ
+    onMessage(type, callback) {
+        if (IFrameResizer.instance) {
+            if (typeof type === 'string' && typeof callback === 'function') {
+                this.customMessageHandlers.set(type, callback);
+                this.log(`Custom message handler registered for type: ${type}`);
+            } else {
+                console.error(`[LOG][IFRAME CHILD]: Invalid handler for message type: ${type}. Callback must be a function.`);
+            }
+        }
+        return this; // Rückgabe der aktuellen Instanz für Verkettung
+    }
+
     // Sends a message to the parent window
     sendMessage(type, data) {
         if (IFrameResizer.instance) {
@@ -138,6 +182,7 @@ class IFrameResizer {
         } else {
             console.error(`[LOG][IFRAME CHILD][${window.location.host}]: IFrameResizer is not initialized. Cannot send message.`);
         }
+        return this;
     }
 
     // Debug logging if enabled
@@ -163,6 +208,9 @@ class IFrameResizer {
         if (this.options.scroll) {
             window.removeEventListener('scroll', this.onScroll);
         }
+        this.customMessageHandlers.clear(); // Entferne alle registrierten Handler
+        // entfernt den Message-Listener
+        window.removeEventListener('message', this.handleMessage);
 
         this.observer = null;
         this.lastHeight = null;
