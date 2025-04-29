@@ -1,6 +1,6 @@
 {
   "name": "webcito/iframe-resizer",
-  "version": "1.0.3",
+  "version": "1.0.4",
   "description": "A JavaScript library for dynamic iframe resizing and communication.",
   "keywords": [
     "iframe",
