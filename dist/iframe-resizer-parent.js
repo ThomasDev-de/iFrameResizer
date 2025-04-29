@@ -14,9 +14,10 @@ class IFrameResizer {
         };
         this.options = { ...defaultOptions, ...options };
         this.customMessageHandlers = new Map(); // Map für Custom-Events
-        this.onMessage = this.onMessage.bind(this);
 
-        window.addEventListener('message', this.onMessage);
+        this.handleMessage = this.handleMessage.bind(this); // Bind the proper method
+        window.addEventListener('message', this.handleMessage); // Attach handleMessage to the event listener
+
         this.log('ParentIFrameResizer initialized');
 
         // Automatische Initialnachricht an den iFrame senden
@@ -25,12 +26,18 @@ class IFrameResizer {
 
     // Methode zum Registrieren eines Custom-Event-Handlers
     onMessage(type, callback) {
-        if (typeof type === 'string' && typeof callback === 'function') {
-            this.customMessageHandlers.set(type, callback);
-            this.log(`Custom message handler registered for type: ${type}`);
-        } else {
-            console.error(`[LOG][IFRAME PARENT]: Invalid handler for message type: ${type}. Callback must be a function.`);
+        if (typeof type !== 'string') {
+            console.error(`[LOG][IFRAME PARENT]: Invalid type for message handler. Expected a string, but received:`, type);
+            return;
         }
+
+        if (typeof callback !== 'function') {
+            console.error(`[LOG][IFRAME PARENT]: Invalid callback for message handler. Expected a function, but received:`, callback);
+            return;
+        }
+
+        this.customMessageHandlers.set(type, callback);
+        this.log(`Custom message handler registered for type: ${type}`);
         return this; // Ermöglicht die Verkettung von Methoden
     }
 
