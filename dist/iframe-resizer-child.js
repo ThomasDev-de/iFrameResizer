@@ -148,6 +148,13 @@ class IFrameResizer {
 
         const {type, ...data} = event.data;
 
+        // Wenn event.data keinen "type" hat, ergibt dies undefined
+        if (!this.customMessageHandlers.has(type)) {
+            this.log(`No handler registered for message type: ${type}`, data, false, true);
+            return; // Keine Aktion, da kein Handler registriert wurde
+        }
+
+
         if (this.customMessageHandlers.has(type)) {
             const handler = this.customMessageHandlers.get(type);
             try {
