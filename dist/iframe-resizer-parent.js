@@ -18,6 +18,7 @@ class IFrameResizer {
             onScroll: null,
             initData: {}
         };
+
         this.options = { ...defaultOptions, ...options };
 
         this.iframe = iframe instanceof HTMLElement ? iframe : document.querySelector(iframe);
@@ -78,7 +79,7 @@ class IFrameResizer {
 
         this.customMessageHandlers.set(type, callback);
         this.log(`Custom message handler registered for type: ${type}`);
-        return this; // Ermöglicht die Verkettung von Methoden
+        return this;
     }
 
     /**
@@ -171,12 +172,16 @@ class IFrameResizer {
      */
     log(message, data = null, error = false, warn = false) {
         if (this.options.log) {
+            const logKey = `[LOG][IFRAME PARENT]`;
             if (!error && !warn) {
-                console.log(`[LOG][IFRAME PARENT][${window.location.host}]: ${message}`, data);
+                data ? console.log(`${logKey}[${window.location.host}]: ${message}`, data)
+                    : console.log(`${logKey}[${window.location.host}]: ${message}`);
             } else if (error) {
-                console.error(`[LOG][IFRAME PARENT][${window.location.host}]: ${message}`, data);
+                data ? console.error(`${logKey}[${window.location.host}]: ${message}`, data)
+                    : console.error(`${logKey}[${window.location.host}]: ${message}`);
             } else {
-                console.warn(`[LOG][IFRAME PARENT][${window.location.host}]: ${message}`, data);
+                data ? console.warn(`${logKey}[${window.location.host}]: ${message}`, data)
+                    : console.warn(`${logKey}[${window.location.host}]: ${message}`);
             }
         }
     }
