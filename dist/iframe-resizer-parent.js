@@ -13,6 +13,8 @@ class IFrameResizer {
     constructor(iframe, options = {}) {
         const defaultOptions = {
             targetOrigin: '*',
+            autoResize: true,
+            resizeWidth: false,
             log: false,
             onResize: null,
             onScroll: null,
@@ -93,7 +95,10 @@ class IFrameResizer {
             return;
         }
 
-        this.log('Message received', event.data);
+        if (this.options.targetOrigin !== '*' && event.origin !== this.options.targetOrigin) {
+            this.log(`Message origin mismatch: expected ${this.options.targetOrigin}, got ${event.origin}`, null, false, true);
+            return;
+        }
 
         // Validierung der Nachricht
         if (typeof event.data !== 'object' || event.data === null || !event.data.type) {
@@ -101,11 +106,14 @@ class IFrameResizer {
             return;
         }
 
+        this.log('Message received', event.data);
+
         const { type, ...payload } = event.data;
 
         // Standardnachrichten wie 'resize' und 'scroll' behandeln
         switch (type) {
             case 'resize':
+                this.resizeIframe(payload.width, payload.height);
                 if (typeof this.options.onResize === 'function') {
                     this.options.onResize(payload.width, payload.height);
                 } else {
@@ -134,6 +142,25 @@ class IFrameResizer {
                 } else {
                     this.log(`No handler registered for message type: ${type}`, payload, false, true);
                 }
+        }
+    }
+
+    /**
+     * Applies child dimensions to the iframe when automatic resizing is enabled
+     * @param {number} width - Reported child width
+     * @param {number} height - Reported child height
+     */
+    resizeIframe(width, height) {
+        if (!this.options.autoResize) {
+            return;
+        }
+
+        if (Number.isFinite(height)) {
+            this.iframe.style.height = `${height}px`;
+        }
+
+        if (this.options.resizeWidth && Number.isFinite(width)) {
+            this.iframe.style.width = `${width}px`;
         }
     }
 

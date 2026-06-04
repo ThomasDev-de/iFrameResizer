@@ -1,0 +1,501 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>IFrameResizer Demo</title>
+    <script src="../dist/iframe-resizer-parent.min.js"></script>
+    <style>
+        :root {
+            --paper: #f4efe4;
+            --ink: #17211b;
+            --muted: #687268;
+            --line: #d8cdb9;
+            --field: #fffaf0;
+            --accent: #c94f2d;
+            --accent-dark: #87331f;
+            --green: #276b50;
+            --shadow: 0 24px 70px rgba(23, 33, 27, 0.16);
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            min-height: 100vh;
+            margin: 0;
+            color: var(--ink);
+            font-family: Georgia, "Times New Roman", serif;
+            background:
+                radial-gradient(circle at top left, rgba(201, 79, 45, 0.26), transparent 32rem),
+                radial-gradient(circle at bottom right, rgba(39, 107, 80, 0.2), transparent 34rem),
+                repeating-linear-gradient(135deg, rgba(23, 33, 27, 0.035) 0 1px, transparent 1px 13px),
+                var(--paper);
+        }
+
+        button,
+        input {
+            font: inherit;
+        }
+
+        .page {
+            width: min(1180px, calc(100vw - 32px));
+            margin: 0 auto;
+            padding: 42px 0;
+        }
+
+        .hero {
+            display: grid;
+            grid-template-columns: minmax(0, 1.05fr) minmax(320px, 0.95fr);
+            gap: 26px;
+            align-items: end;
+            margin-bottom: 24px;
+        }
+
+        .eyebrow {
+            width: fit-content;
+            margin: 0 0 14px;
+            padding: 7px 11px;
+            border: 1px solid rgba(23, 33, 27, 0.18);
+            border-radius: 999px;
+            color: var(--accent-dark);
+            background: rgba(255, 250, 240, 0.72);
+            font-size: 13px;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+        }
+
+        h1 {
+            max-width: 760px;
+            margin: 0;
+            font-size: clamp(44px, 8vw, 104px);
+            line-height: 0.9;
+            letter-spacing: -0.065em;
+        }
+
+        .intro {
+            margin: 0;
+            color: var(--muted);
+            font-size: 19px;
+            line-height: 1.45;
+        }
+
+        .layout {
+            display: grid;
+            grid-template-columns: minmax(280px, 360px) minmax(0, 1fr);
+            gap: 22px;
+        }
+
+        .panel,
+        .frame-shell {
+            border: 1px solid rgba(23, 33, 27, 0.16);
+            border-radius: 26px;
+            background: rgba(255, 250, 240, 0.78);
+            box-shadow: var(--shadow);
+            backdrop-filter: blur(14px);
+        }
+
+        .panel {
+            padding: 20px;
+        }
+
+        .panel h2,
+        .frame-shell h2 {
+            margin: 0 0 12px;
+            font-size: 20px;
+            letter-spacing: -0.02em;
+        }
+
+        .controls {
+            display: grid;
+            gap: 10px;
+        }
+
+        .button {
+            width: 100%;
+            border: 0;
+            border-radius: 16px;
+            padding: 13px 15px;
+            cursor: pointer;
+            color: #fffaf0;
+            background: var(--ink);
+            transition: transform 160ms ease, background 160ms ease;
+        }
+
+        .button:hover {
+            transform: translateY(-1px);
+            background: var(--accent-dark);
+        }
+
+        .button.secondary {
+            color: var(--ink);
+            border: 1px solid var(--line);
+            background: rgba(255, 250, 240, 0.8);
+        }
+
+        .button.secondary:hover {
+            background: #fffaf0;
+        }
+
+        .field {
+            display: grid;
+            gap: 7px;
+            margin-top: 16px;
+        }
+
+        .field label {
+            color: var(--muted);
+            font-size: 13px;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+        }
+
+        .field input {
+            min-width: 0;
+            border: 1px solid var(--line);
+            border-radius: 14px;
+            padding: 12px 13px;
+            color: var(--ink);
+            background: var(--field);
+            outline: none;
+        }
+
+        .status {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 10px;
+            margin: 18px 0;
+        }
+
+        .metric {
+            border: 1px solid var(--line);
+            border-radius: 18px;
+            padding: 12px;
+            background: rgba(255, 250, 240, 0.58);
+        }
+
+        .metric span {
+            display: block;
+            color: var(--muted);
+            font-size: 12px;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+        }
+
+        .metric strong {
+            display: block;
+            margin-top: 5px;
+            font-size: 24px;
+            letter-spacing: -0.04em;
+        }
+
+        .log {
+            height: 210px;
+            overflow: auto;
+            margin: 0;
+            border: 1px solid rgba(23, 33, 27, 0.14);
+            border-radius: 18px;
+            padding: 12px;
+            color: #fffaf0;
+            background: #17211b;
+            font-family: "Courier New", monospace;
+            font-size: 12px;
+            line-height: 1.45;
+            white-space: pre-wrap;
+        }
+
+        .frame-shell {
+            overflow: hidden;
+        }
+
+        .frame-head {
+            display: flex;
+            justify-content: space-between;
+            gap: 12px;
+            align-items: center;
+            padding: 18px 20px;
+            border-bottom: 1px solid rgba(23, 33, 27, 0.12);
+        }
+
+        .badge {
+            border-radius: 999px;
+            padding: 7px 10px;
+            color: #fffaf0;
+            background: var(--green);
+            font-size: 13px;
+        }
+
+        iframe {
+            display: block;
+            width: 100%;
+            min-height: 120px;
+            border: 0;
+            background: #fffaf0;
+            transition: height 220ms ease;
+        }
+
+        @media (max-width: 860px) {
+            .hero,
+            .layout {
+                grid-template-columns: 1fr;
+            }
+
+            .page {
+                padding-top: 26px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <main class="page">
+        <section class="hero">
+            <div>
+                <p class="eyebrow">Local iframe-resizer simulation</p>
+                <h1>Parent and child in one demo.</h1>
+            </div>
+            <p class="intro">
+                This page loads the parent bundle, creates an iframe with the child bundle, and logs resize, ready, scroll, and custom message events.
+            </p>
+        </section>
+
+        <section class="layout">
+            <aside class="panel" aria-label="Demo controls">
+                <h2>Controls</h2>
+                <div class="controls">
+                    <button class="button" type="button" id="addBlock">Add child content</button>
+                    <button class="button secondary" type="button" id="removeBlock">Remove child content</button>
+                    <button class="button secondary" type="button" id="toggleTheme">Toggle child theme</button>
+                    <button class="button secondary" type="button" id="pingChild">Send custom message</button>
+                </div>
+
+                <div class="field">
+                    <label for="messageInput">Message payload</label>
+                    <input id="messageInput" value="Hello from parent" autocomplete="off">
+                </div>
+
+                <div class="status" aria-live="polite">
+                    <div class="metric">
+                        <span>Height</span>
+                        <strong id="heightValue">-</strong>
+                    </div>
+                    <div class="metric">
+                        <span>Width</span>
+                        <strong id="widthValue">-</strong>
+                    </div>
+                </div>
+
+                <h2>Event Log</h2>
+                <pre class="log" id="log"></pre>
+            </aside>
+
+            <section class="frame-shell">
+                <div class="frame-head">
+                    <h2>Iframe</h2>
+                    <span class="badge" id="readyBadge">Waiting for ready</span>
+                </div>
+                <iframe id="demoFrame" title="IFrameResizer child demo"></iframe>
+            </section>
+        </section>
+    </main>
+
+    <script>
+        const iframe = document.querySelector('#demoFrame');
+        const logOutput = document.querySelector('#log');
+        const readyBadge = document.querySelector('#readyBadge');
+        const heightValue = document.querySelector('#heightValue');
+        const widthValue = document.querySelector('#widthValue');
+        const messageInput = document.querySelector('#messageInput');
+
+        function log(message, data = null) {
+            const time = new Date().toLocaleTimeString();
+            const line = data ? `[${time}] ${message} ${JSON.stringify(data)}\n` : `[${time}] ${message}\n`;
+            logOutput.textContent = line + logOutput.textContent;
+        }
+
+        const childDocument = `
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <script src="../dist/iframe-resizer-child.min.js"><\/script>
+    <style>
+        :root {
+            --bg: #fffaf0;
+            --ink: #16211b;
+            --muted: #667167;
+            --accent: #c94f2d;
+            --card: #f0e4cf;
+        }
+
+        :root[data-theme="forest"] {
+            --bg: #10251d;
+            --ink: #f6eedf;
+            --muted: #b8c8b9;
+            --accent: #f0a24b;
+            --card: #18362b;
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            padding: 22px;
+            color: var(--ink);
+            font-family: Georgia, "Times New Roman", serif;
+            background:
+                radial-gradient(circle at top right, rgba(201, 79, 45, 0.22), transparent 21rem),
+                var(--bg);
+            transition: background 180ms ease, color 180ms ease;
+        }
+
+        .child-hero {
+            border: 1px solid rgba(120, 100, 70, 0.25);
+            border-radius: 22px;
+            padding: 22px;
+            background: var(--card);
+        }
+
+        h2 {
+            margin: 0 0 8px;
+            font-size: clamp(30px, 7vw, 58px);
+            line-height: 0.92;
+            letter-spacing: -0.055em;
+        }
+
+        p {
+            color: var(--muted);
+            font-size: 17px;
+            line-height: 1.5;
+        }
+
+        .stack {
+            display: grid;
+            gap: 12px;
+            margin-top: 16px;
+        }
+
+        .block {
+            border-left: 5px solid var(--accent);
+            border-radius: 16px;
+            padding: 14px 16px;
+            background: rgba(255, 255, 255, 0.2);
+        }
+
+        .child-log {
+            margin-top: 18px;
+            border-radius: 16px;
+            padding: 12px;
+            color: var(--bg);
+            background: var(--ink);
+            font-family: "Courier New", monospace;
+            font-size: 12px;
+            white-space: pre-wrap;
+        }
+    </style>
+</head>
+<body>
+    <section class="child-hero">
+        <h2>Child document</h2>
+        <p>The parent controls below send messages into this iframe. Adding blocks changes the body height and triggers resize messages.</p>
+        <div class="stack" id="stack">
+            <div class="block">Initial content block. The iframe height should already match this content.</div>
+            <div class="block">ResizeObserver watches this document body and reports dimensions to the parent.</div>
+        </div>
+        <div class="child-log" id="childLog">Child log ready.\n</div>
+    </section>
+
+    <script>
+        const resizer = window.IFrameResizer.create({
+            targetOrigin: '*',
+            log: false
+        });
+        const stack = document.querySelector('#stack');
+        const childLog = document.querySelector('#childLog');
+        let count = 2;
+
+        function childLogLine(message) {
+            childLog.textContent = new Date().toLocaleTimeString() + ' - ' + message + '\\n' + childLog.textContent;
+        }
+
+        resizer.onMessage('addBlock', () => {
+            count += 1;
+            const block = document.createElement('div');
+            block.className = 'block';
+            block.textContent = 'Dynamic content block #' + count + '. This changed the child height.';
+            stack.appendChild(block);
+            childLogLine('Added block #' + count);
+        });
+
+        resizer.onMessage('removeBlock', () => {
+            if (stack.children.length > 1) {
+                stack.lastElementChild.remove();
+                childLogLine('Removed last block');
+            }
+        });
+
+        resizer.onMessage('toggleTheme', () => {
+            const root = document.documentElement;
+            root.dataset.theme = root.dataset.theme === 'forest' ? '' : 'forest';
+            childLogLine('Theme toggled');
+        });
+
+        resizer.onMessage('parentMessage', (payload) => {
+            childLogLine('Parent says: ' + payload.text);
+            resizer.sendMessage('childReply', {
+                text: 'Child received: ' + payload.text,
+                blocks: stack.children.length
+            });
+        });
+    <\/script>
+</body>
+</html>`;
+
+        const resizer = new IFrameResizer(iframe, {
+            targetOrigin: '*',
+            log: false,
+            onResize: (width, height) => {
+                widthValue.textContent = `${width}px`;
+                heightValue.textContent = `${height}px`;
+                log('resize', {width, height});
+            },
+            onScroll: (left, top) => {
+                log('scroll', {left, top});
+            }
+        }).onReady(() => {
+            readyBadge.textContent = 'Child ready';
+            log('ready');
+        });
+
+        resizer.onMessage('childReply', (payload) => {
+            log('childReply', payload);
+        });
+
+        iframe.srcdoc = childDocument;
+
+        document.querySelector('#addBlock').addEventListener('click', () => {
+            resizer.sendMessage('addBlock');
+            log('sent addBlock');
+        });
+
+        document.querySelector('#removeBlock').addEventListener('click', () => {
+            resizer.sendMessage('removeBlock');
+            log('sent removeBlock');
+        });
+
+        document.querySelector('#toggleTheme').addEventListener('click', () => {
+            resizer.sendMessage('toggleTheme');
+            log('sent toggleTheme');
+        });
+
+        document.querySelector('#pingChild').addEventListener('click', () => {
+            const text = messageInput.value.trim() || 'Hello from parent';
+            resizer.sendMessage('parentMessage', {text});
+            log('sent parentMessage', {text});
+        });
+    </script>
+</body>
+</html>

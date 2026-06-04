@@ -56,24 +56,29 @@ class IFrameResizer {
         this.handleMessage = this.handleMessage.bind(this); // Bind method to instance
         window.addEventListener('message', this.handleMessage);
 
-
         this.log('Initializing', this.options);
+
+        this.initWhenBodyIsReady();
+    }
+
+    /**
+     * Starts listeners after document.body exists
+     */
+    initWhenBodyIsReady() {
+        if (!document.body) {
+            document.addEventListener('DOMContentLoaded', () => this.initWhenBodyIsReady(), {once: true});
+            return;
+        }
 
         if (this.options.resize) {
             this.initResizeListener();
+            this.onResize(true);
         }
         if (this.options.scroll) {
             this.initScrollListener();
         }
 
-        // Sende direkt beim Start die Ready-Nachricht
-        if (IFrameResizer.hasParent()) {
-            this.log('Sending ready message');
-           // Short delay to ensure that the cathedral is loaded
-            setTimeout(() => {
-                this.sendMessage('ready', {});
-            }, 0);
-        }
+        this.sendReady();
     }
 
     /**
@@ -82,6 +87,11 @@ class IFrameResizer {
      */
     initResizeListener() {
         this.onResize = this.onResize.bind(this);
+
+        if (typeof ResizeObserver !== 'function') {
+            this.log('ResizeObserver is not available. Automatic resizing disabled.', null, true, false);
+            return;
+        }
 
         // Callback function for the ResizeObserver
         const resizeObserverCallback = (entries) => {
@@ -94,6 +104,16 @@ class IFrameResizer {
 
         this.observer = new ResizeObserver(resizeObserverCallback);
         this.observer.observe(document.body);
+    }
+
+    /**
+     * Sends a ready signal after listeners are registered
+     */
+    sendReady() {
+        this.log('Sending ready message');
+        setTimeout(() => {
+            this.sendMessage('ready', {});
+        }, 0);
     }
 
     /**
@@ -110,7 +130,7 @@ class IFrameResizer {
      * @param {boolean} force - Force sending dimensions even if unchanged
      */
     onResize(force = false) {
-        if (IFrameResizer.instance) {
+        if (IFrameResizer.instance && document.body) {
             // const reflow = document.body.offsetHeight; // Erzwungener Reflow zur Sicherstellung der Browser-Berechnung
             const newHeight = document.body.scrollHeight; // Höhe basierend auf aktuellem Inhalt
             const newWidth = document.body.scrollWidth;
@@ -142,6 +162,11 @@ class IFrameResizer {
         // Message origin validation
         if (this.options.targetOrigin !== '*' && event.origin !== this.options.targetOrigin) {
             this.log(`Message origin mismatch: expected ${this.options.targetOrigin}, got ${event.origin}`, null, false, true);
+            return;
+        }
+
+        if (typeof event.data !== 'object' || event.data === null || !event.data.type) {
+            this.log('Invalid message format or missing type in event data.', event.data, false, true);
             return;
         }
 
