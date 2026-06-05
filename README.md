@@ -146,6 +146,7 @@ resizer.sendMessage('customEvent', {data: 'Hello Parent!'});
 
 ### Child Methods
 
+- `window.IFrameResizer.hasParent()`: Check if the script is running inside an iframe
 - `onMessage(type, callback)`: Register custom message handler
 - `sendMessage(type, data)`: Send a message to parent
 - `destroy()`: Clean up instance and listeners
