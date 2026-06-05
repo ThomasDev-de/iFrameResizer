@@ -3,6 +3,7 @@ if (typeof window.IFrameResizer === 'undefined') {
      * @typedef {Object} IFrameResizerFactory
      * @property {Function|null} onReady
      * @property {function(Object): Object} create
+     * @property {function(): boolean} hasParent
      */
 
     /** @type {IFrameResizerFactory} */
@@ -16,7 +17,8 @@ if (typeof window.IFrameResizer === 'undefined') {
             }
 
             return IFrameResizerInstance;
-        }
+        },
+        hasParent: () => window.IFrameResizerClass.hasParent()
     };
 
     window.IFrameResizer = factory;
