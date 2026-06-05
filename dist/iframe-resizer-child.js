@@ -1,17 +1,25 @@
 if (typeof window.IFrameResizer === 'undefined') {
-    // Global IFrameResizer object that provides the entry point for creating resizer instances
-    window.IFrameResizer = {
-        onReady: null, // Callback function that gets called when resizer is ready
-        create: (options = {}) => { // Factory method to create new IFrameResizer instances
-            const IFrameResizerInstance = new IFrameResizer(options);
+    /**
+     * @typedef {Object} IFrameResizerFactory
+     * @property {Function|null} onReady
+     * @property {function(Object): Object} create
+     */
 
-            if (typeof window.IFrameResizer.onReady === 'function') {
-                window.IFrameResizer.onReady(IFrameResizerInstance);
+    /** @type {IFrameResizerFactory} */
+    const factory = {
+        onReady: null,
+        create: (options = {}) => {
+            const IFrameResizerInstance = new window.IFrameResizerClass(options);
+
+            if (typeof factory.onReady === 'function') {
+                factory.onReady(IFrameResizerInstance);
             }
 
             return IFrameResizerInstance;
         }
     };
+
+    window.IFrameResizer = factory;
 
     /**
      * Main class for handling iframe resizing and communication with the parent window
@@ -276,5 +284,5 @@ if (typeof window.IFrameResizer === 'undefined') {
         static hasParent() {
             return window.self !== window.top;
         }
-    }
+    };
 }
